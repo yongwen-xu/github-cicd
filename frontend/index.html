@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Docker Compose Sample</title>
+</head>
+<body>
+    <h1>ホテル検索</h1>
+    <div>
+        <label for="prefecture_code">都道府県</label>
+        <select id="prefecture_code">
+            <option value="13">東京</option>
+            <option value="26">京都</option>
+            <option value="27">大阪</option>
+        </select>
+        <button onclick="fetchMessages()">検索</button>
+    </div>
+    <ul id="messages"></ul>
+
+    <script>
+        async function fetchMessages() {
+            const prefectureCode = document.getElementById('prefecture_code').value;
+            const list = document.getElementById('messages');
+            list.innerHTML = 'Loading...';
+
+            try {
+                const response = await fetch(`/api/travel/plans?prefecture_code=${prefectureCode}`);
+                const data = await response.json();
+                list.innerHTML = '';
+                
+                if (data.plans) {
+                    if (data.plans.length === 0) {
+                        list.textContent = 'No plans found for this region.';
+                    }
+                    data.plans.forEach(plan => {
+                        const li = document.createElement('li');
+                        li.textContent = `${plan.hotel_name}: ${plan.plan_name} - ${plan.price} JPY (ID: ${plan.plan_id})`;
+                        list.appendChild(li);
+                    });
+                } else if (data.error) {
+                    const li = document.createElement('li');
+                    li.textContent = 'Error: ' + data.error;
+                    list.appendChild(li);
+                }
+            } catch (error) {
+                console.error('Fetch error:', error);
+                list.innerHTML = 'Error fetching data.';
+            }
+        }
+    </script>
+</body>
+</html>

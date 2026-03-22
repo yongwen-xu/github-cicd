@@ -1,0 +1,48 @@
+services:
+  # サービス名
+  db:
+    image: postgres:18-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: sampledb
+    volumes:
+      # ホスト側のディレクトリ:コンテナ側のディレクトリ
+      - ./db/init:/docker-entrypoint-initdb.d
+      # ヘルスチェック：コンテナが正常に動作しているかを定期的にチェックする仕組み
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d sampledb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # サービス名
+  booking-api:
+    build: ./booking-api
+    ports:
+      - "5002:5002"
+    environment:
+      DATABASE_URL: postgresql://user:password@db:5432/sampledb
+      PORT: 5002
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # サービス名
+  travel-api:
+    build: ./travel-api
+    environment:
+      BOOKING_API_URL: ${BOOKING_API_URL:-http://booking-api:5002}
+      PORT: 5001
+    depends_on:
+      - booking-api
+  
+  # サービス名
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - travel-api
